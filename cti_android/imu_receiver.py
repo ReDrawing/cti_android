@@ -41,7 +41,6 @@ class IMUReceiver(Node):
 
             with urllib.request.urlopen(url) as req:
                 data = req.read()
-
                 dataDict = json.loads(data)
 
                 #print(len(dataDict["accel"]["data"]), len(dataDict["gyro"]["data"]))
@@ -50,17 +49,15 @@ class IMUReceiver(Node):
                 gyroIndex = 0
 
                 while(accelIndex <len(dataDict["accel"]["data"]) and gyroIndex<len(dataDict["gyro"]["data"]) ):
-                    if(dataDict["accel"]["data"][accelIndex][0] == dataDict["gyro"]["data"][gyroIndex][0]):
-                        
-                        if(dataDict["accel"]["data"][accelIndex][0]> self.accelMeasureTime):
+                    if(dataDict["accel"]["data"][accelIndex][0]> self.accelMeasureTime):
                             self.accelMeasureTime = dataDict["accel"]["data"][accelIndex][0]
                             self.gyroMeasureTime = dataDict["gyro"]["data"][gyroIndex][0]
 
                             self.publish(dataDict["accel"]["data"][accelIndex][1], dataDict["gyro"]["data"][gyroIndex][1], self.accelMeasureTime)
+                    
+                    if(dataDict["accel"]["data"][accelIndex][0] == dataDict["gyro"]["data"][gyroIndex][0]):
                         accelIndex += 1
                         gyroIndex += 1
-
-
                     elif(dataDict["accel"]["data"][accelIndex][0] < dataDict["gyro"]["data"][gyroIndex][0]):
                         accelIndex += 1
                     else:
@@ -72,9 +69,12 @@ class IMUReceiver(Node):
 
                         self.publishMag(dataDict["mag"]["data"][j][1], self.magMeasureTime)
 
-
         except URLError:
             self.get_logger().warn("Nao foi possivel conectar. O endereco ip foi definido corretamente?")
+        except KeyError:
+            self.get_logger().warn("O celular esta conectado?")
+        except ConnectionResetError:
+            self.get_logger().warn("Conexao cancelada. O celular foi desconectado?")
 
     def publish(self, accel, gyro, time):
         '''!
@@ -111,7 +111,6 @@ class IMUReceiver(Node):
         msg.header.stamp.nanosec = int((timeSec*1000000000)%1000000000)
 
         self.publisher.publish(msg)
-
         
 
     def publishMag(self, mag, time):
