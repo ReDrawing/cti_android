@@ -35,28 +35,37 @@ class CameraReceiver(Node):
         frameId = self.get_parameter("frame_id").get_parameter_value().string_value
 
         url = "http://"+ip+":8080/shot.jpg"
+        try:
+            with urllib.request.urlopen(url) as req:
+                frame = np.array(bytearray(req.read()), dtype = np.uint8)
+                frame = cv.imdecode(frame, -1)
 
-        with urllib.request.urlopen(url) as req:
-            frame = np.array(bytearray(req.read()), dtype = np.uint8)
-            frame = cv.imdecode(frame, -1)
-
-            frameRGB = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-        
-            bridge = CvBridge()
-            imgMsg = bridge.cv2_to_imgmsg(frameRGB)
-            compImgMsg = bridge.cv2_to_compressed_imgmsg(frameRGB)
-
-            time = self.get_clock().now().to_msg()
-            imgMsg.header.stamp = time
-            compImgMsg.header.stamp = time
+                frameRGB = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
             
-            imgMsg.header.frame_id = frameId
-            imgMsg.header.frame_id = frameId
+                bridge = CvBridge()
+                imgMsg = bridge.cv2_to_imgmsg(frameRGB)
+                compImgMsg = bridge.cv2_to_compressed_imgmsg(frameRGB)
 
-            self.pubImg.publish(imgMsg)
-            self.pubImgCompress.publish(compImgMsg)
+                time = self.get_clock().now().to_msg()
+                imgMsg.header.stamp = time
+                compImgMsg.header.stamp = time
+                
+                imgMsg.header.frame_id = frameId
+                compImgMsg.header.frame_id = frameId
+            
 
-            publishInfo(imgMsg.header)
+                self.pubImg.publish(imgMsg)
+                self.pubImgCompress.publish(compImgMsg)
+
+                self.publishInfo(imgMsg.header)
+
+        except URLError:
+            self.get_logger().warn("Nao foi possivel conectar. O endereco ip foi definido corretamente?")
+        except KeyError:
+            self.get_logger().warn("O celular esta conectado?")
+        except ConnectionResetError:
+            self.get_logger().warn("Conexao cancelada. O celular foi desconectado?")
+            
 
     def publishInfo(self, header):
         '''!
