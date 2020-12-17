@@ -27,33 +27,48 @@ class CameraReceiver(Node):
         ip = self.get_parameter("ip").get_parameter_value().string_value
 
         self.cap = cv.VideoCapture("http://"+ip+":8080/video")
+        self.cap.set(cv.CAP_PROP_BUFFERSIZE, 0)
 
         self.callbackGroup = ReentrantCallbackGroup()
 
-        timer_period = 0.016666  # segundos
+        timer_period = 0.016666/2.0  # segundos
         self.timer = self.create_timer(timer_period, self.timerCallback)#, callback_group=self.callbackGroup)
+        self.timer2 = self.create_timer(timer_period, self.timer2Callback)#, callback_group=self.callbackGroup)
+
+        self.frame = None
+        self.ret = False
+
+        self.height = 0
+        self.width = 0
+
+    def timer2Callback(self):
+        self.ret, self.frame = self.cap.read()
+
+        if(self.ret):
+
+            self.height = self.frame.shape[0]
+            self.width = self.frame.shape[1]
+
+            self.flattened = self.frame.flatten().tolist()
 
     def timerCallback(self):
         '''!
             Callback do timer que recebe a imagem e publica
         '''
-        
-        ret, frame = self.cap.read()
-
         frameId = self.get_parameter("frame_id").get_parameter_value().string_value
 
         tempo1 = cv.getTickCount()
 
-        if(ret):
-
+        if(self.ret):
+            self.ret = False
             imgMsg = Image()
 
-            data = frame.flatten().tolist()
+            data = self.flattened 
 
             imgMsg._data = data
 
-            imgMsg.height = frame.shape[0]
-            imgMsg.width = frame.shape[1]
+            imgMsg.height = self.height
+            imgMsg.width = self.width
 
             imgMsg.encoding = "8UC3"
             imgMsg.is_bigendian = 0
@@ -75,7 +90,6 @@ class CameraReceiver(Node):
 
         tempo2 = cv.getTickCount()
 
-
     def publishInfo(self, header):
         '''!
             @todo Implementar publicacao de CameraInfo
@@ -91,9 +105,9 @@ def main(args=None):
     executor = rclpy.executors.MultiThreadedExecutor()
     executor.add_node(node)
 
-    #executor.spin()
+    executor.spin()
 
-    rclpy.spin(node)
+    #rclpy.spin(node)
 
     node.destroy_node()
     executor.shutdown()
