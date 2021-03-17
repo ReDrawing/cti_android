@@ -18,8 +18,8 @@ class CameraReceiver(Node):
 
     def __init__(self):
         super().__init__('camera_receiver')
-        self.pubImg = self.create_publisher(Image, "image_raw/image", 10)
-        self.pubImgCompress = self.create_publisher(CompressedImage, "image_raw/compressed", 10)
+        self.pubImg = self.create_publisher(Image, "camera/image", 10)
+        self.pubImgCompress = self.create_publisher(CompressedImage, "camera/compressed", 10)
 
         self.declare_parameter("ip","192.168.2.101")
         self.declare_parameter("frame_id","cellphone_camera")
@@ -42,6 +42,10 @@ class CameraReceiver(Node):
         self.width = 0
 
     def timer2Callback(self):
+        '''!
+            Recebe a imagem
+        '''
+
         self.ret, self.frame = self.cap.read()
 
         if(self.ret):
@@ -53,7 +57,7 @@ class CameraReceiver(Node):
 
     def timerCallback(self):
         '''!
-            Callback do timer que recebe a imagem e publica
+            Callback do timer que recebe a publica a imagem
         '''
         frameId = self.get_parameter("frame_id").get_parameter_value().string_value
 
@@ -63,9 +67,7 @@ class CameraReceiver(Node):
             self.ret = False
             imgMsg = Image()
 
-            data = self.flattened 
-
-            imgMsg._data = data
+            imgMsg._data = self.flattened 
 
             imgMsg.height = self.height
             imgMsg.width = self.width
